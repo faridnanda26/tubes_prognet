@@ -1,4 +1,5 @@
 import java.awt.*;
+import java.awt.event.*;
 import java.io.*;
 import java.nio.file.*;
 import javax.swing.*;
@@ -12,13 +13,23 @@ public class SellerMin {
     private DefaultTableModel tableModel;
     private JTextArea logArea;
 
+    // --- KONFIGURASI FILE & GAMBAR ---
     private final String FILE_STOK = "stok_barang.txt";
     private final String IMAGE_DIR = "images/";
 
-    private final Color COLOR_RED = new Color(214, 48, 49);
-    private final Color COLOR_WHITE = Color.WHITE;
-    private final Color COLOR_BG = new Color(245, 246, 250);
+    // --- STYLE & WARNA ---
+    private final Color COL_PRIMARY = new Color(229, 57, 53);    // Merah
+    private final Color COL_BLUE    = new Color(66, 133, 244);   // Biru Border
+    private final Color COL_TEXT    = new Color(33, 37, 41);     // Hitam
+    private final Color COL_BG      = new Color(248, 249, 250);  // Abu Muda
+    private final Color COL_WHITE   = Color.WHITE;
 
+    private final Font FONT_TITLE = new Font("SansSerif", Font.BOLD, 32);
+    private final Font FONT_LABEL = new Font("SansSerif", Font.BOLD, 15);
+    private final Font FONT_INPUT = new Font("SansSerif", Font.PLAIN, 14);
+    private final Font FONT_BTN   = new Font("SansSerif", Font.BOLD, 16);
+
+    // --- VARIABEL FORM ---
     private JTextField tNama, tStok, tHarga, tDesc;
     private JLabel lblFile;
     private JCheckBox cSale;
@@ -26,88 +37,130 @@ public class SellerMin {
     private int editingRowIndex = -1;
 
     public SellerMin() {
+        // Buat folder gambar jika belum ada
         new File(IMAGE_DIR).mkdirs();
         try { UIManager.setLookAndFeel(UIManager.getCrossPlatformLookAndFeelClassName()); } catch (Exception e) {}
+        
         showLogin();
     }
 
-    // ================= LOGIN =================
+    // ========================================================================
+    // ======================== HALAMAN LOGIN (RE-DESIGN) =====================
+    // ========================================================================
+    
     private void showLogin() {
-        JFrame loginFrame = new JFrame("Admin Login");
-        loginFrame.setSize(400, 600);
+        JFrame loginFrame = new JFrame("Admin Login - FashionHub");
+        loginFrame.setSize(420, 650);
         loginFrame.setLocationRelativeTo(null);
-        loginFrame.getContentPane().setBackground(COLOR_RED);
+        loginFrame.getContentPane().setBackground(COL_WHITE);
         loginFrame.setLayout(new GridBagLayout());
+        loginFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-        RoundedPanel box = new RoundedPanel(30, COLOR_WHITE);
-        box.setPreferredSize(new Dimension(300, 360));
-        box.setLayout(new BoxLayout(box, BoxLayout.Y_AXIS));
-        box.setBorder(new EmptyBorder(25, 25, 25, 25));
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        int margin = 35;
 
+        // 1. Logo FashionHub
         JLabel logo = new JLabel("FashionHub");
-        logo.setForeground(COLOR_RED);
-        logo.setFont(new Font("SansSerif", Font.BOLD, 24));
-        logo.setAlignmentX(Component.CENTER_ALIGNMENT);
+        logo.setFont(new Font("SansSerif", Font.BOLD, 40));
+        logo.setForeground(COL_PRIMARY);
+        logo.setHorizontalAlignment(SwingConstants.CENTER);
+        
+        gbc.gridx = 0; gbc.gridy = 0; 
+        gbc.insets = new Insets(0, margin, 10, margin);
+        loginFrame.add(logo, gbc);
 
-        JTextField user = new JTextField();
-        user.setBorder(BorderFactory.createTitledBorder("Username"));
-        JPasswordField pass = new JPasswordField();
-        pass.setBorder(BorderFactory.createTitledBorder("Password"));
 
-        JButton login = new JButton("MASUK");
-        login.setBackground(COLOR_RED); login.setForeground(COLOR_WHITE);
-        login.setFocusPainted(false);
-        login.addActionListener(e -> { loginFrame.dispose(); initMainDashboard(); });
+        // 3. Username Input
+        JLabel lblUser = createLabel("Username");
+        JTextField tUser = createStyledTextField("Enter username");
+        
+        gbc.gridy = 2; gbc.insets = new Insets(5, margin, 5, margin);
+        loginFrame.add(lblUser, gbc);
+        
+        gbc.gridy = 3; gbc.insets = new Insets(0, margin, 20, margin);
+        loginFrame.add(tUser, gbc);
 
-        box.add(logo); box.add(Box.createVerticalStrut(25));
-        box.add(user); box.add(Box.createVerticalStrut(10));
-        box.add(pass); box.add(Box.createVerticalStrut(20));
-        box.add(login);
+        // 4. Password Input
+        JLabel lblPass = createLabel("Password");
+        JPasswordField tPass = createStyledPasswordField("Enter password");
 
-        loginFrame.add(box);
+        gbc.gridy = 4; gbc.insets = new Insets(5, margin, 5, margin);
+        loginFrame.add(lblPass, gbc);
+        
+        gbc.gridy = 5; gbc.insets = new Insets(0, margin, 40, margin);
+        loginFrame.add(tPass, gbc);
+
+        // 5. Tombol Login
+        JButton btnLogin = createRoundedButton("Login", COL_PRIMARY, COL_WHITE);
+        btnLogin.addActionListener(e -> {
+            // Validasi sederhana (bisa dikembangkan)
+            if(!tUser.getText().equals("Enter username")) {
+                loginFrame.dispose();
+                initMainDashboard();
+            } else {
+                JOptionPane.showMessageDialog(loginFrame, "Isi username & password!");
+            }
+        });
+
+        gbc.gridy = 6; gbc.insets = new Insets(0, margin, 20, margin);
+        loginFrame.add(btnLogin, gbc);
+
         loginFrame.setVisible(true);
     }
 
-    // ================= MAIN UI =================
+    // ========================================================================
+    // ======================== DASHBOARD UTAMA (ADMIN) =======================
+    // ========================================================================
+
     private void initMainDashboard() {
-        frame = new JFrame("Seller Center");
-        frame.setSize(420, 750);
+        frame = new JFrame("Seller Center - Dashboard");
+        frame.setSize(450, 800);
         frame.setLocationRelativeTo(null);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
         cardLayout = new CardLayout();
         mainContent = new JPanel(cardLayout);
 
-        // Dashboard
+        // --- 1. HALAMAN DASHBOARD (GRID PRODUK) ---
         gridPanel = new JPanel(new GridLayout(0, 2, 12, 12));
-        gridPanel.setBackground(COLOR_BG);
+        gridPanel.setBackground(COL_BG);
         gridPanel.setBorder(new EmptyBorder(15, 15, 15, 15));
         
         JPanel gridContainer = new JPanel(new BorderLayout());
         gridContainer.add(gridPanel, BorderLayout.NORTH);
-        gridContainer.setBackground(COLOR_BG);
+        gridContainer.setBackground(COL_BG);
         mainContent.add(new JScrollPane(gridContainer), "DASHBOARD");
 
+        // --- 2. HALAMAN TAMBAH PRODUK ---
         mainContent.add(createAddPage(), "TAMBAH");
 
+        // --- 3. HALAMAN NOTIFIKASI ---
         logArea = new JTextArea();
         logArea.setEditable(false);
+        logArea.setFont(FONT_INPUT);
+        logArea.setBorder(new EmptyBorder(10,10,10,10));
         mainContent.add(new JScrollPane(logArea), "NOTIF");
 
+        // --- 4. HALAMAN ORDER ---
         mainContent.add(createOrderPage(), "ORDER");
 
-        // Bottom Nav
+        // --- BOTTOM NAVIGATION ---
         JPanel nav = new JPanel(new GridLayout(1, 4));
-        nav.setBackground(COLOR_RED);
+        nav.setBackground(COL_PRIMARY);
         nav.setPreferredSize(new Dimension(0, 60));
+        
         String[] icons = {"🏠", "➕", "🔔", "🛒"};
         String[] pages = {"DASHBOARD", "TAMBAH", "NOTIF", "ORDER"};
 
         for (int i = 0; i < icons.length; i++) {
             final String p = pages[i];
             JButton b = new JButton(icons[i]);
-            b.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 20));
-            b.setForeground(COLOR_WHITE); b.setContentAreaFilled(false); b.setBorderPainted(false);
+            b.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 24));
+            b.setForeground(COL_WHITE); 
+            b.setContentAreaFilled(false); 
+            b.setBorderPainted(false);
+            b.setFocusPainted(false);
             b.addActionListener(e -> {
                 if (p.equals("DASHBOARD")) updateProductGrid();
                 if (p.equals("TAMBAH")) clearForm();
@@ -119,13 +172,18 @@ public class SellerMin {
         frame.add(mainContent, BorderLayout.CENTER);
         frame.add(nav, BorderLayout.SOUTH);
 
+        // Load Data Awal
         tableModel = new DefaultTableModel(new String[]{"Foto", "Nama", "Stok", "Harga", "Sale", "Desc"}, 0);
         loadData();
         updateProductGrid();
+        
         frame.setVisible(true);
     }
 
-    // ================= GRID VIEW (TOMBOL DI BAWAH) =================
+    // ========================================================================
+    // =========================== GRID VIEW PRODUK ===========================
+    // ========================================================================
+
     private void updateProductGrid() {
         gridPanel.removeAll();
         for (int i = 0; i < tableModel.getRowCount(); i++) {
@@ -135,45 +193,43 @@ public class SellerMin {
             String price = (String) tableModel.getValueAt(i, 3);
 
             JPanel card = new JPanel(new BorderLayout());
-            card.setBorder(new LineBorder(new Color(235, 235, 235), 1, true));
-            card.setBackground(COLOR_WHITE);
+            card.setBorder(new LineBorder(new Color(230, 230, 230), 1, true));
+            card.setBackground(COL_WHITE);
 
-            // 1. Gambar (Tengah)
+            // Gambar
             JLabel imgLbl = new JLabel();
             try {
                 ImageIcon ic = new ImageIcon(IMAGE_DIR + img);
                 imgLbl.setIcon(new ImageIcon(ic.getImage().getScaledInstance(140, 110, Image.SCALE_SMOOTH)));
                 imgLbl.setHorizontalAlignment(JLabel.CENTER);
-            } catch (Exception e) {}
+            } catch (Exception e) { imgLbl.setText("No Img"); }
             imgLbl.setBorder(new EmptyBorder(10, 5, 5, 5));
 
-            // 2. Info & Tombol (Bawah)
+            // Info
             JPanel bottomPanel = new JPanel(new BorderLayout());
-            bottomPanel.setBackground(COLOR_WHITE);
+            bottomPanel.setBackground(COL_WHITE);
             bottomPanel.setBorder(new EmptyBorder(5, 10, 10, 10));
 
-            // Detail Nama & Harga
             JPanel textPanel = new JPanel(new GridLayout(2, 1));
-            textPanel.setBackground(COLOR_WHITE);
+            textPanel.setBackground(COL_WHITE);
             JLabel lblName = new JLabel(name);
             lblName.setFont(new Font("SansSerif", Font.BOLD, 12));
             JLabel lblPrice = new JLabel("Rp " + price);
-            lblPrice.setForeground(COLOR_RED);
+            lblPrice.setForeground(COL_PRIMARY);
+            lblPrice.setFont(new Font("SansSerif", Font.BOLD, 12));
             textPanel.add(lblName);
             textPanel.add(lblPrice);
 
-            // Tombol Aksi Kanan (Bulat)
+            // Tombol Edit/Delete
             JPanel actionPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 5, 0));
-            actionPanel.setBackground(COLOR_WHITE);
+            actionPanel.setBackground(COL_WHITE);
 
-            JButton btnEdit = createCircleButton("✎", COLOR_RED);
-            btnEdit.setPreferredSize(new Dimension(30, 30));
+            JButton btnEdit = createCircleButton("✎", COL_PRIMARY);
             btnEdit.addActionListener(e -> prepareEdit(index));
 
-            JButton btnDel = createCircleButton("✕", new Color(200, 200, 200));
-            btnDel.setPreferredSize(new Dimension(30, 30));
+            JButton btnDel = createCircleButton("✕", Color.GRAY);
             btnDel.addActionListener(e -> {
-                if(JOptionPane.showConfirmDialog(frame, "Hapus?") == 0) {
+                if(JOptionPane.showConfirmDialog(frame, "Hapus produk ini?") == 0) {
                     tableModel.removeRow(index);
                     simpan();
                     updateProductGrid();
@@ -183,8 +239,8 @@ public class SellerMin {
             actionPanel.add(btnEdit);
             actionPanel.add(btnDel);
 
-            bottomPanel.add(textPanel, BorderLayout.WEST);
-            bottomPanel.add(actionPanel, BorderLayout.EAST);
+            bottomPanel.add(textPanel, BorderLayout.CENTER);
+            bottomPanel.add(actionPanel, BorderLayout.SOUTH);
 
             card.add(imgLbl, BorderLayout.CENTER);
             card.add(bottomPanel, BorderLayout.SOUTH);
@@ -195,7 +251,6 @@ public class SellerMin {
 
     private JButton createCircleButton(String text, Color bg) {
         JButton b = new JButton(text) {
-            @Override
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
@@ -203,20 +258,256 @@ public class SellerMin {
                 g2.fillOval(0, 0, getWidth()-1, getHeight()-1);
                 g2.setColor(Color.WHITE);
                 FontMetrics fm = g2.getFontMetrics();
-                int x = (getWidth() - fm.stringWidth(getText())) / 2;
-                int y = ((getHeight() - fm.getHeight()) / 2) + fm.getAscent();
-                g2.drawString(getText(), x, y);
+                g2.drawString(getText(), (getWidth()-fm.stringWidth(getText()))/2, (getHeight()/2)+5);
                 g2.dispose();
             }
         };
-        b.setFont(new Font("SansSerif", Font.BOLD, 14));
+        b.setFont(new Font("SansSerif", Font.BOLD, 12));
         b.setContentAreaFilled(false);
         b.setBorderPainted(false);
-        b.setFocusPainted(false);
+        b.setPreferredSize(new Dimension(30, 30));
+        b.setCursor(new Cursor(Cursor.HAND_CURSOR));
         return b;
     }
 
-    // ================= KODE CRUD & UTIL LAINNYA =================
+    // ========================================================================
+    // ========================== HALAMAN TAMBAH/EDIT =========================
+    // ========================================================================
+
+private JPanel createAddPage() {
+        JPanel p = new JPanel();
+        p.setLayout(new BoxLayout(p, BoxLayout.Y_AXIS));
+        p.setBackground(Color.WHITE);
+        // Padding pinggir agar tidak mepet layar
+        p.setBorder(new EmptyBorder(20, 25, 20, 25));
+
+        // --- 1. HEADER ---
+        JLabel title = new JLabel("Tambah Produk");
+        title.setFont(new Font("SansSerif", Font.BOLD, 24));
+        title.setForeground(new Color(10, 25, 80)); // Warna biru tua
+        title.setAlignmentX(Component.LEFT_ALIGNMENT);
+        p.add(title);
+        p.add(Box.createVerticalStrut(20)); // Jarak
+
+        // --- 2. UPLOAD AREA (KOTAK BESAR) ---
+        JLabel lblUploadTitle = new JLabel("Upload Foto");
+        lblUploadTitle.setFont(FONT_LABEL);
+        lblUploadTitle.setAlignmentX(Component.LEFT_ALIGNMENT);
+        p.add(lblUploadTitle);
+        p.add(Box.createVerticalStrut(10));
+
+        // Panel khusus untuk area upload gambar
+        JPanel uploadArea = new JPanel(new BorderLayout());
+        uploadArea.setBackground(new Color(245, 245, 245)); // Abu-abu muda
+        uploadArea.setMaximumSize(new Dimension(Integer.MAX_VALUE, 120)); // Tinggi kotak upload
+        uploadArea.setPreferredSize(new Dimension(300, 120));
+        // Border putus-putus (Dashed) atau solid tipis
+        uploadArea.setBorder(BorderFactory.createDashedBorder(Color.LIGHT_GRAY, 2, 2));
+        uploadArea.setCursor(new Cursor(Cursor.HAND_CURSOR));
+
+        lblFile = new JLabel("<html><center>📸<br>Klik untuk pilih foto</center></html>", SwingConstants.CENTER);
+        lblFile.setForeground(Color.GRAY);
+        uploadArea.add(lblFile, BorderLayout.CENTER);
+
+        // Event klik pada area upload
+        uploadArea.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                JFileChooser fc = new JFileChooser();
+                if (fc.showOpenDialog(frame) == JFileChooser.APPROVE_OPTION) {
+                    File f = fc.getSelectedFile();
+                    currentFileName = f.getName();
+                    lblFile.setText("<html><center>✅ " + currentFileName + "</center></html>");
+                    try { 
+                        Files.copy(f.toPath(), Paths.get(IMAGE_DIR + currentFileName), StandardCopyOption.REPLACE_EXISTING); 
+                    } catch (Exception ex) {}
+                }
+            }
+        });
+        
+        // Bungkus uploadArea agar align left
+        uploadArea.setAlignmentX(Component.LEFT_ALIGNMENT);
+        p.add(uploadArea);
+        p.add(Box.createVerticalStrut(20));
+
+        // --- 3. INPUT FIELDS (Label di atas) ---
+        // Kita pakai helper 'addFormGroup' biar kodenya rapi
+        tNama = createStyledTextField("");
+        addFormGroup(p, "Nama Produk", tNama);
+
+        tStok = createStyledTextField("0");
+        addFormGroup(p, "Stok", tStok);
+
+        tHarga = createStyledTextField("0");
+        addFormGroup(p, "Harga", tHarga);
+
+        // Deskripsi pakai TextArea biar lebih besar
+        tDesc = createStyledTextField("Deskripsi singkat..."); 
+        // Note: Jika ingin multiline beneran, bisa ganti tDesc jadi JTextArea, 
+        // tapi untuk menjaga kompatibilitas variabel tDesc kamu, kita pakai field biasa dulu 
+        // atau kita akali ukurannya di helper.
+        addFormGroup(p, "Deskripsi", tDesc);
+
+        // --- 4. FLASH SALE CHECKBOX ---
+        cSale = new JCheckBox("Aktifkan Flash Sale");
+        cSale.setBackground(Color.WHITE);
+        cSale.setFont(FONT_INPUT);
+        cSale.setFocusPainted(false);
+        cSale.setAlignmentX(Component.LEFT_ALIGNMENT);
+        p.add(cSale);
+        p.add(Box.createVerticalStrut(20));
+
+        // --- 5. TOMBOL SIMPAN (Full Width) ---
+        // Style tombol putih outline hitam seperti referensi, atau solid color
+        JButton save = new JButton("Tambah Produk");
+        save.setFont(FONT_BTN);
+        save.setBackground(Color.WHITE); 
+        save.setForeground(Color.BLACK);
+        save.setFocusPainted(false);
+        save.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        save.setMaximumSize(new Dimension(Integer.MAX_VALUE, 50)); // Full width
+        // Border rounded
+        save.setBorder(BorderFactory.createCompoundBorder(
+             new LineBorder(Color.BLACK, 1, true),
+             new EmptyBorder(10, 10, 10, 10)
+        ));
+
+        save.addActionListener(e -> {
+            Object[] row = {currentFileName, tNama.getText(), tStok.getText(), tHarga.getText(), cSale.isSelected() ? "SALE" : "-", tDesc.getText()};
+            if (editingRowIndex == -1) tableModel.addRow(row);
+            else for(int i=0; i<6; i++) tableModel.setValueAt(row[i], editingRowIndex, i);
+            simpan();
+            updateProductGrid();
+            clearForm();
+            cardLayout.show(mainContent, "DASHBOARD");
+            JOptionPane.showMessageDialog(frame, "Data Tersimpan!");
+        });
+        
+        save.setAlignmentX(Component.LEFT_ALIGNMENT);
+        p.add(save);
+        
+        // Spacer bawah agar bisa discroll kalau layar kecil
+        p.add(Box.createVerticalGlue());
+
+        return p;
+    }
+
+    // Helper untuk membuat grup input (Label di atas, Field di bawah)
+    private void addFormGroup(JPanel parent, String labelText, JComponent inputField) {
+        JLabel label = new JLabel(labelText);
+        label.setFont(new Font("SansSerif", Font.BOLD, 14));
+        label.setForeground(COL_TEXT);
+        label.setAlignmentX(Component.LEFT_ALIGNMENT);
+        
+        // Pastikan field juga rata kiri
+        inputField.setAlignmentX(Component.LEFT_ALIGNMENT);
+        // Pastikan lebar field maksimal (full width)
+        inputField.setMaximumSize(new Dimension(Integer.MAX_VALUE, 45));
+        
+        parent.add(label);
+        parent.add(Box.createVerticalStrut(8)); // Jarak label ke field
+        parent.add(inputField);
+        parent.add(Box.createVerticalStrut(15)); // Jarak ke grup input berikutnya
+    }
+
+    private JPanel createOrderPage() {
+        JPanel panel = new JPanel(new BorderLayout());
+        JTable table = new JTable(new DefaultTableModel(new String[]{"Produk", "Jumlah", "Harga", "Status"}, 0));
+        table.setRowHeight(30);
+        table.getTableHeader().setBackground(COL_PRIMARY);
+        table.getTableHeader().setForeground(Color.WHITE);
+        panel.add(new JScrollPane(table), BorderLayout.CENTER);
+        return panel;
+    }
+
+    // ========================================================================
+    // ======================== HELPER UI (STYLE SAMA) ========================
+    // ========================================================================
+
+    private JLabel createLabel(String text) {
+        JLabel l = new JLabel(text);
+        l.setFont(FONT_LABEL);
+        l.setForeground(COL_TEXT);
+        l.setAlignmentX(Component.LEFT_ALIGNMENT);
+        return l;
+    }
+
+    private JTextField createStyledTextField(String placeholder) {
+        JTextField tf = new JTextField(placeholder);
+        tf.setFont(FONT_INPUT);
+        tf.setForeground(Color.GRAY);
+        tf.setMaximumSize(new Dimension(Integer.MAX_VALUE, 45)); // Height 45
+        tf.setPreferredSize(new Dimension(300, 45));
+        tf.setBorder(BorderFactory.createCompoundBorder(
+            new RoundedBorder(15, COL_BLUE),
+            BorderFactory.createEmptyBorder(0, 10, 0, 10)
+        ));
+        tf.addFocusListener(new FocusAdapter() {
+            public void focusGained(FocusEvent e) { if(tf.getText().equals(placeholder)) { tf.setText(""); tf.setForeground(Color.BLACK); } }
+            public void focusLost(FocusEvent e) { if(tf.getText().isEmpty()) { tf.setText(placeholder); tf.setForeground(Color.GRAY); } }
+        });
+        return tf;
+    }
+
+    private JPasswordField createStyledPasswordField(String placeholder) {
+        JPasswordField tf = new JPasswordField(placeholder);
+        tf.setFont(FONT_INPUT);
+        tf.setForeground(Color.GRAY);
+        tf.setEchoChar((char)0);
+        tf.setPreferredSize(new Dimension(300, 45));
+        tf.setBorder(BorderFactory.createCompoundBorder(
+            new RoundedBorder(15, COL_BLUE), BorderFactory.createEmptyBorder(0, 10, 0, 10)
+        ));
+        tf.addFocusListener(new FocusAdapter() {
+            public void focusGained(FocusEvent e) { 
+                if(new String(tf.getPassword()).equals(placeholder)) { tf.setText(""); tf.setForeground(Color.BLACK); tf.setEchoChar('•'); } 
+            }
+            public void focusLost(FocusEvent e) { 
+                if(tf.getPassword().length == 0) { tf.setText(placeholder); tf.setForeground(Color.GRAY); tf.setEchoChar((char)0); } 
+            }
+        });
+        return tf;
+    }
+
+    private JButton createRoundedButton(String text, Color bg, Color fg) {
+        JButton b = new JButton(text) {
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(bg);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 40, 40);
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        b.setFont(FONT_BTN);
+        b.setForeground(fg);
+        b.setFocusPainted(false);
+        b.setBorderPainted(false);
+        b.setContentAreaFilled(false);
+        b.setMaximumSize(new Dimension(Integer.MAX_VALUE, 50));
+        b.setPreferredSize(new Dimension(300, 50));
+        b.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        return b;
+    }
+
+    private static class RoundedBorder implements Border {
+        private int r; private Color c;
+        RoundedBorder(int r, Color c) { this.r = r; this.c = c; }
+        public Insets getBorderInsets(Component cmp) { return new Insets(1, 1, 1, 1); }
+        public boolean isBorderOpaque() { return true; }
+        public void paintBorder(Component cmp, Graphics g, int x, int y, int w, int h) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setColor(c);
+            g2.setStroke(new BasicStroke(1));
+            g2.drawRoundRect(x, y, w-1, h-1, r, r);
+            g2.dispose();
+        }
+    }
+
+    // ================= FILE & LOGIC =================
+
     private void prepareEdit(int rowIndex) {
         editingRowIndex = rowIndex;
         currentFileName = (String) tableModel.getValueAt(rowIndex, 0);
@@ -229,80 +520,10 @@ public class SellerMin {
         cardLayout.show(mainContent, "TAMBAH");
     }
 
-    public String getProductDataString() {
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < tableModel.getRowCount(); i++) {
-            for (int j = 0; j < 6; j++) sb.append(tableModel.getValueAt(i, j)).append(",");
-            sb.append(";");
-        }
-        return sb.toString();
-    }
-
-    public void handleLogin(String user) { SwingUtilities.invokeLater(() -> logArea.append("👤 LOGIN: " + user + "\n")); }
-    public void handleOrder(String detail) { 
-        SwingUtilities.invokeLater(() -> {
-            logArea.append("🛒 ORDER: " + detail + "\n");
-            JOptionPane.showMessageDialog(frame, "Ada Pesanan Baru!");
-        });
-    }
-
-    private JPanel createAddPage() {
-        JPanel p = new JPanel();
-        p.setLayout(new BoxLayout(p, BoxLayout.Y_AXIS));
-        p.setBackground(COLOR_WHITE);
-        p.setBorder(new EmptyBorder(20, 40, 20, 40));
-
-        tNama = createInput("Nama Produk");
-        tStok = createInput("Stok");
-        tHarga = createInput("Harga");
-        tDesc = createInput("Deskripsi");
-        lblFile = new JLabel("Pilih Foto", SwingConstants.CENTER);
-
-        JButton upload = new JButton("📸 UPLOAD");
-        upload.addActionListener(e -> {
-            JFileChooser fc = new JFileChooser();
-            if (fc.showOpenDialog(frame) == JFileChooser.APPROVE_OPTION) {
-                File f = fc.getSelectedFile();
-                currentFileName = f.getName();
-                lblFile.setText(currentFileName);
-                try { Files.copy(f.toPath(), Paths.get(IMAGE_DIR + currentFileName), StandardCopyOption.REPLACE_EXISTING); } catch (Exception ex) {}
-            }
-        });
-
-        cSale = new JCheckBox("Flash Sale");
-        cSale.setBackground(COLOR_WHITE);
-
-        JButton save = new JButton("SIMPAN");
-        save.setBackground(COLOR_RED); save.setForeground(COLOR_WHITE);
-        save.addActionListener(e -> {
-            Object[] row = {currentFileName, tNama.getText(), tStok.getText(), tHarga.getText(), cSale.isSelected() ? "SALE" : "-", tDesc.getText()};
-            if (editingRowIndex == -1) tableModel.addRow(row);
-            else for(int i=0; i<6; i++) tableModel.setValueAt(row[i], editingRowIndex, i);
-            simpan();
-            updateProductGrid();
-            cardLayout.show(mainContent, "DASHBOARD");
-        });
-
-        p.add(tNama); p.add(tStok); p.add(tHarga); p.add(tDesc);
-        p.add(upload); p.add(lblFile); p.add(cSale); p.add(save);
-        return p;
-    }
-
-    private JPanel createOrderPage() {
-        JPanel panel = new JPanel(new BorderLayout());
-        panel.add(new JScrollPane(new JTable(new DefaultTableModel(new String[]{"Produk", "Jumlah", "Harga", "Status"}, 0))), BorderLayout.CENTER);
-        return panel;
-    }
-
-    private JTextField createInput(String title) {
-        JTextField f = new JTextField();
-        f.setBorder(BorderFactory.createTitledBorder(title));
-        return f;
-    }
-
     private void clearForm() {
-        editingRowIndex = -1; tNama.setText(""); tStok.setText(""); tHarga.setText(""); tDesc.setText("");
-        cSale.setSelected(false); lblFile.setText("Pilih Foto");
+        editingRowIndex = -1; tNama.setText("Nama Produk"); tStok.setText("0"); 
+        tHarga.setText("0"); tDesc.setText("Deskripsi...");
+        cSale.setSelected(false); lblFile.setText("Belum ada file");
     }
 
     private void simpan() {
@@ -324,15 +545,45 @@ public class SellerMin {
             br.close();
         } catch (Exception e) {}
     }
+    
+    // ========================================================================
+    // ============ TAMBAHAN KHUSUS (JANGAN DIHAPUS) AGAR SERVER JALAN ========
+    // ========================================================================
 
-    class RoundedPanel extends JPanel {
-        int r; Color c;
-        RoundedPanel(int r, Color c) { this.r = r; this.c = c; setOpaque(false); }
-        protected void paintComponent(Graphics g) {
-            Graphics2D g2 = (Graphics2D) g;
-            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            g2.setColor(c); g2.fillRoundRect(0, 0, getWidth(), getHeight(), r, r);
+    // Method ini dipanggil oleh SellerVer.java untuk mengambil data produk
+    public String getProductDataString() {
+        StringBuilder sb = new StringBuilder();
+        if (tableModel != null) {
+            for (int i = 0; i < tableModel.getRowCount(); i++) {
+                // Urutan: Foto, Nama, Stok, Harga, Sale, Desc
+                sb.append(tableModel.getValueAt(i, 0)).append(",")
+                  .append(tableModel.getValueAt(i, 1)).append(",")
+                  .append(tableModel.getValueAt(i, 2)).append(",")
+                  .append(tableModel.getValueAt(i, 3)).append(",")
+                  .append(tableModel.getValueAt(i, 4)).append(",")
+                  .append(tableModel.getValueAt(i, 5)).append(";");
+            }
         }
+        return sb.toString();
+    }
+
+    // Method ini dipanggil oleh SellerVer.java saat ada pembeli login
+    public void handleLogin(String username) {
+        SwingUtilities.invokeLater(() -> {
+            if (logArea != null) {
+                logArea.append("🟢 [LOGIN] " + username + " terhubung.\n");
+            }
+        });
+    }
+
+    // Method ini dipanggil oleh SellerVer.java saat ada pesanan
+    public void handleOrder(String orderDetails) {
+        SwingUtilities.invokeLater(() -> {
+            if (logArea != null) {
+                logArea.append("🛒 [ORDER] Masuk: " + orderDetails + "\n");
+            }
+            // Karena kita tidak mengubah GUI Order (sesuai request), notif masuk ke Log saja.
+        });
     }
 
     public static void main(String[] args) { SwingUtilities.invokeLater(SellerMin::new); }

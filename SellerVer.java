@@ -11,20 +11,22 @@ public class SellerVer {
             adminUI = new SellerMin();
         });
 
-        // 2. Jalankan Koneksi Server
-        try (ServerSocket serverSocket = new ServerSocket(5000)) {
-            System.out.println("🚀 Server FashionHub Aktif di Port 5000...");
-            
-            while (true) {
-                Socket socket = serverSocket.accept();
-                // Tunggu sebentar sampai adminUI selesai dibuat
-                if (adminUI != null) {
-                    new Thread(new ClientHandler(socket)).start();
+        // 2. Jalankan Koneksi Server (Thread Terpisah)
+        new Thread(() -> {
+            try (ServerSocket serverSocket = new ServerSocket(5000)) {
+                System.out.println("🚀 Server FashionHub Aktif di Port 5000...");
+                
+                while (true) {
+                    Socket socket = serverSocket.accept();
+                    // Pastikan adminUI sudah siap
+                    if (adminUI != null) {
+                        new Thread(new ClientHandler(socket)).start();
+                    }
                 }
+            } catch (IOException e) {
+                e.printStackTrace();
             }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        }).start();
     }
 
     static class ClientHandler implements Runnable {
@@ -40,8 +42,9 @@ public class SellerVer {
                  PrintWriter out = new PrintWriter(socket.getOutputStream(), true)) {
                 
                 System.out.println("📱 Pembeli Terhubung!");
+                Thread.sleep(500); // Delay dikit
 
-                // Kirim data stok barang ke pembeli saat pertama kali konek
+                // Kirim data stok
                 String currentData = adminUI.getProductDataString();
                 out.println("DATA_PRODUK:" + currentData);
 
@@ -53,7 +56,7 @@ public class SellerVer {
                         adminUI.handleOrder(request.substring(6));
                     }
                 }
-            } catch (IOException e) {
+            } catch (Exception e) {
                 System.out.println("🔌 Pembeli terputus.");
             }
         }
