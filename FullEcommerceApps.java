@@ -33,10 +33,15 @@ public class FullEcommerceApps extends JFrame {
     private final Color COLOR_BG = new Color(245, 246, 250);
 
     class CartItem {
-        int qty, price;
+        int qty, price, maxStock; // Tambahkan maxStock
         String imgName;
         boolean selected = true;
-        CartItem(int q, int p, String img) { this.qty = q; this.price = p; this.imgName = img; }
+        CartItem(int q, int p, String img, int max) { 
+            this.qty = q; 
+            this.price = p; 
+            this.imgName = img; 
+            this.maxStock = max; // Inisialisasi maxStock
+        }
     }
 
     public FullEcommerceApps() {
@@ -53,8 +58,10 @@ public class FullEcommerceApps extends JFrame {
 
         gridDash = new JPanel(new WrapLayout(FlowLayout.LEFT, 15, 15));
         gridDash.setBackground(COLOR_BG);
+        gridDash.setBorder(new EmptyBorder(0, 0, 100, 0));
         gridSale = new JPanel(new WrapLayout(FlowLayout.LEFT, 15, 15));
         gridSale.setBackground(COLOR_BG);
+        gridSale.setBorder(new EmptyBorder(0, 0, 100, 0));
         
         cartPanel = new JPanel(); 
         cartPanel.setLayout(new BoxLayout(cartPanel, BoxLayout.Y_AXIS));
@@ -120,14 +127,15 @@ public class FullEcommerceApps extends JFrame {
         return p;
     }
 
-    private JPanel createCard(String imgName, String name, String priceStr) {
+    // 1. PERBAIKAN METHOD createCard (Menambahkan info stok dan validasi)
+    private JPanel createCard(String imgName, String name, String priceStr, int stock) {
         int priceInt = Integer.parseInt(priceStr.replace(".", ""));
         JPanel c = new JPanel(new BorderLayout());
-        c.setPreferredSize(new Dimension(175, 270));
+        c.setPreferredSize(new Dimension(175, 300)); // Tinggi disesuaikan
         c.setBackground(Color.WHITE);
         c.setBorder(new LineBorder(new Color(230, 230, 230), 1, true));
 
-        JLabel lblImg = new JLabel();
+        JLabel lblImg = new JLabel(); // Variabel ini sekarang sudah didefinisikan
         lblImg.setHorizontalAlignment(JLabel.CENTER);
         try {
             ImageIcon icon = new ImageIcon("images/" + imgName);
@@ -137,28 +145,55 @@ public class FullEcommerceApps extends JFrame {
 
         JPanel bottom = new JPanel(new BorderLayout());
         bottom.setBackground(Color.WHITE);
-        JLabel lblInfo = new JLabel("<html><center>" + name + "<br><b color='red'>Rp " + priceStr + "</b></center></html>", JLabel.CENTER);
         
-        JButton btn = new JButton("TAMBAH");
-        btn.setBackground(COLOR_RED);
-        btn.setForeground(COLOR_WHITE);
-        btn.setFocusPainted(false);
-        btn.setBorderPainted(false);
-        btn.setContentAreaFilled(true);
+        // Menampilkan Nama, Harga, dan Stok
+        JLabel lblInfo = new JLabel("<html><center>" + name + "<br><b color='red'>Rp " + priceStr + 
+                                    "</b><br><small>Stok: " + stock + "</small></center></html>", JLabel.CENTER);
+        
+        JButton btn = new JButton(stock > 0 ? "TAMBAH" : "HABIS");
+        btn.setFont(new Font("SansSerif", Font.BOLD, 12));
         btn.setOpaque(true);
+        btn.setContentAreaFilled(true);
+        btn.setBorderPainted(false);
+        btn.setFocusPainted(false);
+
+        if (stock <= 0) {
+            btn.setBackground(Color.GRAY);
+            btn.setForeground(Color.WHITE); // Sekarang akan terlihat karena tombol tetap "Enabled"
+            btn.setEnabled(true); // Biarkan true agar warna teks tidak dipaksa pudar oleh sistem
+        } else {
+            btn.setBackground(COLOR_RED);
+            btn.setForeground(Color.WHITE);
+            btn.setEnabled(true);
+        }
+
         btn.addActionListener(e -> {
-            if(cartMap.containsKey(name)) cartMap.get(name).qty++;
-            else cartMap.put(name, new CartItem(1, priceInt, imgName));
-            JOptionPane.showMessageDialog(this, name + " masuk keranjang!");
+            // Validasi stok di dalam sini
+            if (stock <= 0) {
+                JOptionPane.showMessageDialog(this, "Maaf, stok barang ini sudah habis!");
+                return; // Keluar dari fungsi, tidak masuk ke keranjang
+            }
+
+            int qtyInCart = cartMap.containsKey(name) ? cartMap.get(name).qty : 0;
+            if (qtyInCart < stock) {
+                if(cartMap.containsKey(name)) cartMap.get(name).qty++;
+                else cartMap.put(name, new CartItem(1, priceInt, imgName, stock));
+                JOptionPane.showMessageDialog(this, name + " masuk keranjang!");
+            } else {
+                JOptionPane.showMessageDialog(this, "Stok tidak mencukupi!");
+            }
         });
 
-        bottom.add(lblInfo, BorderLayout.CENTER); bottom.add(btn, BorderLayout.SOUTH);
-        c.add(lblImg, BorderLayout.CENTER); c.add(bottom, BorderLayout.SOUTH);
+        bottom.add(lblInfo, BorderLayout.CENTER); 
+        bottom.add(btn, BorderLayout.SOUTH);
+        c.add(lblImg, BorderLayout.CENTER); 
+        c.add(bottom, BorderLayout.SOUTH);
         return c;
     }
 
-    private JPanel createHomeCard(String imgName, String name, String priceStr, boolean isSale) {
-        JPanel card = createCard(imgName, name, priceStr);
+    // 2. PERBAIKAN METHOD createHomeCard (Menyesuaikan argumen)
+    private JPanel createHomeCard(String imgName, String name, String priceStr, boolean isSale, int stock) {
+        JPanel card = createCard(imgName, name, priceStr, stock); // Sekarang mengirim 4 argumen
 
         if (isSale) {
             JLabel badge = new JLabel("FLASH SALE");
@@ -171,10 +206,8 @@ public class FullEcommerceApps extends JFrame {
             JPanel badgeWrap = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 5));
             badgeWrap.setOpaque(false);
             badgeWrap.add(badge);
-
             card.add(badgeWrap, BorderLayout.NORTH);
         }
-
         return card;
     }
 
@@ -214,7 +247,14 @@ public class FullEcommerceApps extends JFrame {
                 JLabel lblQty = new JLabel(String.valueOf(item.qty));
                 JButton btnPlus = new JButton("+");
                 btnMin.addActionListener(e -> { if(item.qty > 1) item.qty--; else cartMap.remove(key); updateCartUI(); });
-                btnPlus.addActionListener(e -> { item.qty++; updateCartUI(); });
+                btnPlus.addActionListener(e -> { 
+                    if(item.qty < item.maxStock) {
+                        item.qty++; 
+                        updateCartUI(); 
+                    } else {
+                        JOptionPane.showMessageDialog(this, "Batas stok tercapai!");
+                    }
+                });
                 qtyBox.add(btnMin); qtyBox.add(lblQty); qtyBox.add(btnPlus);
 
                 JPanel westPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
@@ -422,6 +462,7 @@ public class FullEcommerceApps extends JFrame {
         } catch (Exception e) {}
     }
 
+    // 3. PERBAIKAN METHOD parseProducts (Mengambil data stok dari server)
     private void parseProducts(String raw) {
         gridDash.removeAll(); 
         gridSale.removeAll();
@@ -430,21 +471,22 @@ public class FullEcommerceApps extends JFrame {
             String[] d = item.split(",");
             if(d.length < 5) continue;
 
+            int stock = Integer.parseInt(d[2]); // Kolom indeks 2 adalah stok
             boolean isSale = d[4].equals("SALE");
 
             JPanel card = createHomeCard(
                 d[0], // image
                 d[1], // nama
                 d[3], // harga
-                isSale
+                isSale,
+                stock // Sekarang mengirim stok ke card
             );
 
-            // 👉 SEMUA MASUK BERANDA
             gridDash.add(card);
-
-            // 👉 FLASH SALE TETAP MASUK MENU FLASH
             if (isSale) gridSale.add(card);
         }
+        gridDash.add(Box.createVerticalStrut(80)); 
+        gridSale.add(Box.createVerticalStrut(80));
 
         gridDash.revalidate();
         gridSale.revalidate();

@@ -233,6 +233,7 @@ public class SellerMin {
                     tableModel.removeRow(index);
                     simpan();
                     updateProductGrid();
+                    SellerVer.broadcastUpdate();
                 }
             });
 
@@ -378,6 +379,7 @@ private JPanel createAddPage() {
             else for(int i=0; i<6; i++) tableModel.setValueAt(row[i], editingRowIndex, i);
             simpan();
             updateProductGrid();
+            SellerVer.broadcastUpdate();
             clearForm();
             cardLayout.show(mainContent, "DASHBOARD");
             JOptionPane.showMessageDialog(frame, "Data Tersimpan!");
@@ -584,6 +586,34 @@ private JPanel createAddPage() {
             }
             // Karena kita tidak mengubah GUI Order (sesuai request), notif masuk ke Log saja.
         });
+    }
+
+    // Tambahkan method ini di dalam class SellerMin
+    public synchronized void reduceStock(String nota) {
+        // Format nota: "Kaos Polos (x2), Celana Jeans (x1), "
+        String[] items = nota.split(", ");
+        for (String itemStr : items) {
+            if (itemStr.contains("(x")) {
+                try {
+                    String name = itemStr.substring(0, itemStr.indexOf(" (x")).trim();
+                    int qtyMinus = Integer.parseInt(itemStr.substring(itemStr.indexOf("(x") + 2, itemStr.indexOf(")")));
+
+                    // Cari baris di tabel yang namanya cocok
+                    for (int i = 0; i < tableModel.getRowCount(); i++) {
+                        if (tableModel.getValueAt(i, 1).toString().equalsIgnoreCase(name)) {
+                            int currentStock = Integer.parseInt(tableModel.getValueAt(i, 2).toString());
+                            int newStock = Math.max(0, currentStock - qtyMinus);
+                            tableModel.setValueAt(String.valueOf(newStock), i, 2);
+                            break;
+                        }
+                    }
+                } catch (Exception e) {
+                    System.out.println("Gagal memotong stok untuk: " + itemStr);
+                }
+            }
+        }
+        simpan(); // Simpan ke file stok_barang.txt
+        updateProductGrid(); // Refresh tampilan grid admin
     }
 
     public static void main(String[] args) { SwingUtilities.invokeLater(SellerMin::new); }
