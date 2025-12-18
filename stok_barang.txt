@@ -1,4 +1,4 @@
 tisu.jpg,tisuuu,5,5000,SALE,lorem,
-iphone.jpeg,iphone,4,1000,SALE,lorem,
+iphone.jpeg,iphone,5,1000,SALE,lorem,
 hotin.jpeg,hotin cream,0,25000,-,lorem,
 serum.png,serum,5,70000,SALE,lorem,
