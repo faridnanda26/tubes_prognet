@@ -6,7 +6,7 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 import javax.swing.*;
 import javax.swing.border.*;
-import javax.swing.plaf.basic.BasicButtonUI; // IMPORT PENTING UNTUK MEMPERBAIKI WARNA
+import javax.swing.plaf.basic.BasicButtonUI; 
 
 public class FullEcommerceApps extends JFrame {
     
@@ -25,6 +25,13 @@ public class FullEcommerceApps extends JFrame {
     private String currentUser;
     private JLabel lblUserProfile;
     
+    // --- VARIABEL UNTUK FITUR TIMER & LOGIKA FLASH SALE ---
+    private Thread flashSaleThread; 
+    private JLabel headerTimerLabel;
+    private boolean isFlashSaleActive = false; // Penanda status aktif/tidak
+    private String lastProductRawData = "";    // Menyimpan data produk terakhir untuk refresh UI
+    // ---------------------------------------------------
+
     private Map<String, CartItem> cartMap = new LinkedHashMap<>();
     private java.util.List<HistoryItem> history = new ArrayList<>();
     
@@ -35,20 +42,10 @@ public class FullEcommerceApps extends JFrame {
     private final int PORT = 5000;
     private PrintWriter out;
 
-    // --- WARNA ---
     private final Color COLOR_RED = new Color(214, 48, 49);
     private final Color COLOR_WHITE = Color.WHITE;
     private final Color COLOR_BG = new Color(245, 246, 250);
-    private final Color COLOR_GREEN = new Color(46, 204, 113); // Warna tombol default (Hijau)
-
-    // --- VARIABEL LOGIN (UAS) ---
-    private boolean isSellerMode = false; 
-    private JTextField tLoginEmail;
-    private JPasswordField tLoginPass;
-    private JTextField tSignEmail, tSignUser, tSignAddr;
-    private JPasswordField tSignPass;
-    private JLabel lblSignUser, lblSignAddr;
-
+    private final Color COLOR_GREEN = new Color(46, 204, 113); 
     private final Color COL_PRIMARY = new Color(229, 57, 53);    
     private final Color COL_ORANGE  = new Color(243, 156, 18);   
     private final Color COL_BLUE    = new Color(66, 133, 244);   
@@ -59,16 +56,12 @@ public class FullEcommerceApps extends JFrame {
     private final Font FONT_INPUT = new Font("SansSerif", Font.PLAIN, 14);
     private final Font FONT_BTN   = new Font("SansSerif", Font.BOLD, 16);
 
-    // --- CLASS DATA ---
     class CartItem {
-        int qty, price, maxStock; // Tambahkan maxStock
+        int qty, price, maxStock; 
         String imgName;
         boolean selected = true;
         CartItem(int q, int p, String img, int max) { 
-            this.qty = q; 
-            this.price = p; 
-            this.imgName = img; 
-            this.maxStock = max; // Inisialisasi maxStock
+            this.qty = q; this.price = p; this.imgName = img; this.maxStock = max; 
         }
     }
 
@@ -80,21 +73,26 @@ public class FullEcommerceApps extends JFrame {
         }
     }
 
+    private boolean isSellerMode = false; 
+    private JTextField tLoginEmail;
+    private JPasswordField tLoginPass;
+    private JTextField tSignEmail, tSignUser, tSignAddr;
+    private JPasswordField tSignPass;
+    private JLabel lblSignUser, lblSignAddr;
+
     public FullEcommerceApps() {
         initUI();
     }
 
     private void initUI() {
-        setTitle("FashionHub");
+        setTitle("FashionHub - Customer App");
         setSize(420, 850);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
         getContentPane().setBackground(Color.WHITE);
 
-        // LOGIN (UAS)
         mainPanel.add(createLoginFlowPanel(), "LOGIN_FLOW");
 
-        // DASHBOARD (TUBES)
         gridDash = new JPanel(new WrapLayout(FlowLayout.LEFT, 15, 15));
         gridDash.setBackground(COLOR_BG);
         gridDash.setBorder(new EmptyBorder(0, 0, 100, 0));
@@ -122,7 +120,7 @@ public class FullEcommerceApps extends JFrame {
     }
 
     // =================================================================================
-    // 2. BAGIAN GUI LOGIN (UAS)
+    // 2. BAGIAN GUI LOGIN (Sama seperti sebelumnya)
     // =================================================================================
 
     private JPanel createLoginFlowPanel() {
@@ -174,7 +172,6 @@ public class FullEcommerceApps extends JFrame {
         gbc.gridy = 1; gbc.weighty = 0.2; gbc.anchor = GridBagConstraints.NORTH;
         gbc.insets = new Insets(0, 40, 60, 40);
         p.add(btnPanel, gbc);
-
         return p;
     }
 
@@ -185,7 +182,6 @@ public class FullEcommerceApps extends JFrame {
         gbc.fill = GridBagConstraints.HORIZONTAL;
         
         int margin = 35; 
-
         JLabel title = new JLabel("Signup");
         title.setFont(FONT_TITLE);
         title.setHorizontalAlignment(SwingConstants.CENTER);
@@ -203,40 +199,33 @@ public class FullEcommerceApps extends JFrame {
         togglePanel.add(btnCust);
         togglePanel.add(btnSell);
 
-        gbc.gridy = 1; 
-        gbc.insets = new Insets(0, margin + 10, 20, margin + 10);
+        gbc.gridy = 1; gbc.insets = new Insets(0, margin + 10, 20, margin + 10);
         p.add(togglePanel, gbc);
 
         gbc.insets = new Insets(5, margin, 5, margin);
         gbc.gridy = 2; p.add(createLabel("Email"), gbc);
-        gbc.gridy = 3; 
-        tSignEmail = createStyledTextField("Enter email");
+        gbc.gridy = 3; tSignEmail = createStyledTextField("Enter email");
         gbc.insets = new Insets(0, margin, 15, margin);
         p.add(tSignEmail, gbc);
 
         lblSignUser = createLabel("Nama Toko");
         tSignUser = createStyledTextField("Enter Username");
-        
         gbc.insets = new Insets(5, margin, 5, margin);
         gbc.gridy = 4; p.add(lblSignUser, gbc);
-        gbc.gridy = 5; 
-        gbc.insets = new Insets(0, margin, 15, margin);
+        gbc.gridy = 5; gbc.insets = new Insets(0, margin, 15, margin);
         p.add(tSignUser, gbc);
 
         gbc.insets = new Insets(5, margin, 5, margin);
         gbc.gridy = 6; p.add(createLabel("Password"), gbc);
-        gbc.gridy = 7; 
-        tSignPass = createStyledPasswordField("Enter password");
+        gbc.gridy = 7; tSignPass = createStyledPasswordField("Enter password");
         gbc.insets = new Insets(0, margin, 15, margin);
         p.add(tSignPass, gbc);
 
         lblSignAddr = createLabel("Alamat");
         tSignAddr = createStyledTextField("Enter address");
-
         gbc.insets = new Insets(5, margin, 5, margin);
         gbc.gridy = 8; p.add(lblSignAddr, gbc);
-        gbc.gridy = 9; 
-        gbc.insets = new Insets(0, margin, 30, margin);
+        gbc.gridy = 9; gbc.insets = new Insets(0, margin, 30, margin);
         p.add(tSignAddr, gbc);
 
         btnCust.addActionListener(e -> { 
@@ -259,42 +248,28 @@ public class FullEcommerceApps extends JFrame {
         btnSignup.addActionListener(e -> {
             boolean emailOk = !tSignEmail.getText().equals("Enter email") && !tSignEmail.getText().isEmpty();
             boolean passOk = tSignPass.getPassword().length > 0;
-
             if (isSellerMode) {
                 String u = tSignUser.getText();
                 String addr = tSignAddr.getText();
                 if(emailOk && passOk && !u.equals("Enter Username") && !addr.equals("Enter address")) {
-                    currentUser = u;
-                    userAddress = addr;
-                    doLoginSuccess();
-                } else {
-                    JOptionPane.showMessageDialog(this, "Seller wajib lengkapi semua data!");
-                }
+                    currentUser = u; userAddress = addr; doLoginSuccess();
+                } else JOptionPane.showMessageDialog(this, "Seller wajib lengkapi semua data!");
             } else {
                 if(emailOk && passOk) {
-                    currentUser = tSignEmail.getText().split("@")[0];
-                    doLoginSuccess();
-                } else {
-                    JOptionPane.showMessageDialog(this, "Email & Password harus diisi!");
-                }
+                    currentUser = tSignEmail.getText().split("@")[0]; doLoginSuccess();
+                } else JOptionPane.showMessageDialog(this, "Email & Password harus diisi!");
             }
         });
 
-        gbc.gridy = 10;
-        gbc.insets = new Insets(0, margin, 20, margin);
+        gbc.gridy = 10; gbc.insets = new Insets(0, margin, 20, margin);
         p.add(btnSignup, gbc);
-
-        p.add(createFooterLink("Sudah punya akun?", "Login", e -> layout.show(container, "LOGIN_FORM")), 
-              createFooterConstraints(11));
-
+        p.add(createFooterLink("Sudah punya akun?", "Login", e -> layout.show(container, "LOGIN_FORM")), createFooterConstraints(11));
         return p;
     }
 
     private void toggleSellerFields(boolean show) {
-        lblSignUser.setVisible(show);
-        tSignUser.setVisible(show);
-        lblSignAddr.setVisible(show);
-        tSignAddr.setVisible(show);
+        lblSignUser.setVisible(show); tSignUser.setVisible(show);
+        lblSignAddr.setVisible(show); tSignAddr.setVisible(show);
     }
 
     private JPanel createLoginFormPanel(CardLayout layout, JPanel container) {
@@ -302,28 +277,24 @@ public class FullEcommerceApps extends JFrame {
         p.setBackground(Color.WHITE);
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.fill = GridBagConstraints.HORIZONTAL;
-        
         int margin = 35;
 
         JLabel title = new JLabel("Log in");
         title.setFont(FONT_TITLE);
         title.setHorizontalAlignment(SwingConstants.CENTER);
         
-        gbc.gridx = 0; gbc.gridy = 0; 
-        gbc.insets = new Insets(60, margin, 40, margin);
+        gbc.gridx = 0; gbc.gridy = 0; gbc.insets = new Insets(60, margin, 40, margin);
         p.add(title, gbc);
 
         gbc.insets = new Insets(5, margin, 5, margin);
         gbc.gridy = 1; p.add(createLabel("Email"), gbc);
-        gbc.gridy = 2; 
-        tLoginEmail = createStyledTextField("Your email");
+        gbc.gridy = 2; tLoginEmail = createStyledTextField("Your email");
         gbc.insets = new Insets(0, margin, 20, margin);
         p.add(tLoginEmail, gbc);
 
         gbc.insets = new Insets(5, margin, 5, margin);
         gbc.gridy = 3; p.add(createLabel("Password"), gbc);
-        gbc.gridy = 4; 
-        tLoginPass = createStyledPasswordField("Your password");
+        gbc.gridy = 4; tLoginPass = createStyledPasswordField("Your password");
         gbc.insets = new Insets(0, margin, 40, margin);
         p.add(tLoginPass, gbc);
 
@@ -331,56 +302,42 @@ public class FullEcommerceApps extends JFrame {
         btnLogin.addActionListener(e -> {
             String email = tLoginEmail.getText();
             if(email != null && !email.contains("Your") && !email.isEmpty()) {
-                currentUser = email;
-                doLoginSuccess();
-            } else {
-                JOptionPane.showMessageDialog(this, "Isi email valid!");
-            }
+                currentUser = email; doLoginSuccess();
+            } else JOptionPane.showMessageDialog(this, "Isi email valid!");
         });
         
-        gbc.gridy = 5; 
-        gbc.insets = new Insets(0, margin, 20, margin);
+        gbc.gridy = 5; gbc.insets = new Insets(0, margin, 20, margin);
         p.add(btnLogin, gbc);
-
-        p.add(createFooterLink("Belum punya akun?", "Sign Up", e -> layout.show(container, "SIGNUP_FORM")), 
-              createFooterConstraints(6));
-
+        p.add(createFooterLink("Belum punya akun?", "Sign Up", e -> layout.show(container, "SIGNUP_FORM")), createFooterConstraints(6));
+        
         GridBagConstraints spacer = new GridBagConstraints();
         spacer.gridy = 10; spacer.weighty = 1.0;
         p.add(Box.createVerticalGlue(), spacer);
-
         return p;
     }
 
+    // --- Helper Components ---
     private JLabel createLabel(String text) {
         JLabel l = new JLabel(text); l.setFont(FONT_LABEL); l.setForeground(COL_TEXT); return l;
     }
-
     private JButton createToggleButton(String text, boolean isActive) {
         JButton b = new JButton(text);
         b.setFont(new Font("SansSerif", Font.BOLD, 14));
-        b.setFocusPainted(false);
-        b.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        b.setFocusPainted(false); b.setCursor(new Cursor(Cursor.HAND_CURSOR));
         b.setBorder(BorderFactory.createLineBorder(COL_PRIMARY, 1));
         b.setPreferredSize(new Dimension(0, 40));
-        updateToggleColor(b, isActive);
-        return b;
+        updateToggleColor(b, isActive); return b;
     }
-
     private void updateToggleVisual(JButton btnCust, JButton btnSell, boolean isCustActive) {
-        updateToggleColor(btnCust, isCustActive);
-        updateToggleColor(btnSell, !isCustActive);
+        updateToggleColor(btnCust, isCustActive); updateToggleColor(btnSell, !isCustActive);
     }
-
     private void updateToggleColor(JButton b, boolean isActive) {
         if(isActive) { b.setBackground(COL_PRIMARY); b.setForeground(Color.WHITE); b.setOpaque(true); } 
         else { b.setBackground(Color.WHITE); b.setForeground(COL_PRIMARY); b.setOpaque(true); }
     }
-
     private JTextField createStyledTextField(String placeholder) {
         JTextField tf = new JTextField(placeholder); styleField(tf, placeholder); return tf;
     }
-
     private JPasswordField createStyledPasswordField(String placeholder) {
         JPasswordField tf = new JPasswordField(placeholder); tf.setEchoChar((char)0); styleField(tf, placeholder);
         tf.addFocusListener(new FocusAdapter() {
@@ -389,7 +346,6 @@ public class FullEcommerceApps extends JFrame {
         });
         return tf;
     }
-
     private void styleField(JTextField tf, String ph) {
         tf.setFont(FONT_INPUT); tf.setForeground(Color.GRAY); tf.setPreferredSize(new Dimension(0, 45));
         tf.setBorder(BorderFactory.createCompoundBorder(new RoundedBorder(15, COL_BLUE), BorderFactory.createEmptyBorder(0, 15, 0, 15)));
@@ -400,7 +356,6 @@ public class FullEcommerceApps extends JFrame {
             });
         }
     }
-
     private JButton createRoundedButton(String text, Color bg, Color fg) {
         JButton b = new JButton(text) {
             protected void paintComponent(Graphics g) {
@@ -413,7 +368,6 @@ public class FullEcommerceApps extends JFrame {
         b.setContentAreaFilled(false); b.setPreferredSize(new Dimension(300, 50)); b.setCursor(new Cursor(Cursor.HAND_CURSOR));
         return b;
     }
-
     private JPanel createFooterLink(String normalText, String linkText, ActionListener action) {
         JPanel p = new JPanel(new FlowLayout(FlowLayout.CENTER, 5, 0)); p.setBackground(Color.WHITE);
         JLabel l1 = new JLabel(normalText); l1.setFont(new Font("SansSerif", Font.PLAIN, 14)); l1.setForeground(COL_BLUE); 
@@ -421,23 +375,23 @@ public class FullEcommerceApps extends JFrame {
         l2.addMouseListener(new MouseAdapter() { public void mouseClicked(MouseEvent e) { action.actionPerformed(null); } });
         p.add(l1); p.add(l2); return p;
     }
-
     private GridBagConstraints createFooterConstraints(int y) {
         GridBagConstraints gbc = new GridBagConstraints(); gbc.gridx = 0; gbc.gridy = y; gbc.insets = new Insets(0, 0, 30, 0); return gbc;
     }
 
     // =================================================================================
-    // 3. LOGIKA UTAMA (TUBES)
+    // 3. LOGIKA UTAMA (PEMBUATAN KARTU PRODUK)
     // =================================================================================
 
-    private JPanel createCard(String imgName, String name, String priceStr, int stock) {
+    // --- MODIFIKASI: MENERIMA PARAMETER isSaleItem ---
+    private JPanel createCard(String imgName, String name, String priceStr, int stock, boolean isSaleItem) {
         int priceInt = Integer.parseInt(priceStr.replace(".", ""));
         JPanel c = new JPanel(new BorderLayout());
-        c.setPreferredSize(new Dimension(175, 300)); // Tinggi disesuaikan
+        c.setPreferredSize(new Dimension(175, 300));
         c.setBackground(Color.WHITE);
         c.setBorder(new LineBorder(new Color(230, 230, 230), 1, true));
 
-        JLabel lblImg = new JLabel(); // Variabel ini sekarang sudah didefinisikan
+        JLabel lblImg = new JLabel(); 
         lblImg.setHorizontalAlignment(JLabel.CENTER);
         try {
             ImageIcon icon = new ImageIcon("images/" + imgName);
@@ -448,32 +402,45 @@ public class FullEcommerceApps extends JFrame {
         JPanel bottom = new JPanel(new BorderLayout());
         bottom.setBackground(Color.WHITE);
         
-        // Menampilkan Nama, Harga, dan Stok
         JLabel lblInfo = new JLabel("<html><center>" + name + "<br><b color='red'>Rp " + priceStr + 
                                     "</b><br><small>Stok: " + stock + "</small></center></html>", JLabel.CENTER);
         
-        JButton btn = new JButton(stock > 0 ? "TAMBAH" : "HABIS");
+        // --- LOGIKA TOMBOL & WARNA ---
+        // Jika barang ini barang SALE, cek apakah Flash Sale masih aktif?
+        // Jika barang normal, tombol selalu aktif (selama stok ada).
+        boolean isExpired = isSaleItem && !isFlashSaleActive; 
+        
+        JButton btn;
+        if (isExpired) {
+            btn = new JButton("BERAKHIR");
+            btn.setBackground(Color.LIGHT_GRAY); 
+            btn.setForeground(Color.DARK_GRAY);
+        } else if (stock <= 0) {
+            btn = new JButton("HABIS");
+            btn.setBackground(Color.GRAY); 
+            btn.setForeground(Color.WHITE);
+        } else {
+            btn = new JButton("TAMBAH");
+            btn.setBackground(COLOR_RED); 
+            btn.setForeground(Color.WHITE);
+        }
+
         btn.setFont(new Font("SansSerif", Font.BOLD, 12));
         btn.setOpaque(true);
         btn.setContentAreaFilled(true);
         btn.setBorderPainted(false);
         btn.setFocusPainted(false);
 
-        if (stock <= 0) {
-            btn.setBackground(Color.GRAY);
-            btn.setForeground(Color.WHITE); // Sekarang akan terlihat karena tombol tetap "Enabled"
-            btn.setEnabled(true); // Biarkan true agar warna teks tidak dipaksa pudar oleh sistem
-        } else {
-            btn.setBackground(COLOR_RED);
-            btn.setForeground(Color.WHITE);
-            btn.setEnabled(true);
-        }
-
         btn.addActionListener(e -> {
-            // Validasi stok di dalam sini
+            // --- LOGIKA PENGECEKAN GANDA SAAT KLIK ---
+            if (isSaleItem && !isFlashSaleActive) {
+                JOptionPane.showMessageDialog(this, "Flash Sale telah berakhir! Menunggu sesi berikutnya.");
+                return;
+            }
+
             if (stock <= 0) {
                 JOptionPane.showMessageDialog(this, "Maaf, stok barang ini sudah habis!");
-                return; // Keluar dari fungsi, tidak masuk ke keranjang
+                return; 
             }
 
             int qtyInCart = cartMap.containsKey(name) ? cartMap.get(name).qty : 0;
@@ -493,9 +460,9 @@ public class FullEcommerceApps extends JFrame {
         return c;
     }
 
-    // 2. PERBAIKAN METHOD createHomeCard (Menyesuaikan argumen)
     private JPanel createHomeCard(String imgName, String name, String priceStr, boolean isSale, int stock) {
-        JPanel card = createCard(imgName, name, priceStr, stock); // Sekarang mengirim 4 argumen
+        // Operkan status isSale ke createCard agar logika tombol bisa berjalan
+        JPanel card = createCard(imgName, name, priceStr, stock, isSale); 
 
         if (isSale) {
             JLabel badge = new JLabel("FLASH SALE");
@@ -573,19 +540,14 @@ public class FullEcommerceApps extends JFrame {
             footer.setMaximumSize(new Dimension(400, 60));
             footer.add(new JLabel("Total: Rp " + totalAll), BorderLayout.WEST);
             
-            // --- PERBAIKAN TOMBOL CHECKOUT (HAPUS OVERLAY) ---
             JButton btnPay = new JButton("Checkout");
-            // INI BARIS AJAIBNYA: Menghapus style Windows yang bikin tombol jadi putih
             btnPay.setUI(new BasicButtonUI()); 
-            
             btnPay.setPreferredSize(new Dimension(100, 30));
-            btnPay.setBackground(COLOR_GREEN); // Default Hijau
-            btnPay.setForeground(COLOR_WHITE);
-            btnPay.setFocusPainted(false); 
+            btnPay.setBackground(COLOR_GREEN); btnPay.setForeground(COLOR_WHITE); btnPay.setFocusPainted(false); 
             
             btnPay.addMouseListener(new MouseAdapter() {
-                public void mouseEntered(MouseEvent e) { btnPay.setBackground(COLOR_RED); } // Hover Merah
-                public void mouseExited(MouseEvent e) { btnPay.setBackground(COLOR_GREEN); } // Balik Hijau
+                public void mouseEntered(MouseEvent e) { btnPay.setBackground(COLOR_RED); } 
+                public void mouseExited(MouseEvent e) { btnPay.setBackground(COLOR_GREEN); } 
             });
 
             final long fTotal = totalAll;
@@ -605,7 +567,6 @@ public class FullEcommerceApps extends JFrame {
         container.setBackground(COLOR_BG);
         container.setBorder(new EmptyBorder(15, 15, 15, 15));
 
-        // 1. HEADER ALAMAT
         JPanel addrBox = new JPanel();
         addrBox.setLayout(new BoxLayout(addrBox, BoxLayout.Y_AXIS));
         addrBox.setBackground(COLOR_WHITE);
@@ -625,7 +586,6 @@ public class FullEcommerceApps extends JFrame {
         addrBox.add(lblAddress);
         container.add(addrBox); container.add(Box.createVerticalStrut(20));
 
-        // 2. DAFTAR PRODUK
         JLabel lblTitleProd = new JLabel("Ringkasan Belanja");
         lblTitleProd.setFont(new Font("SansSerif", Font.BOLD, 13));
         lblTitleProd.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -660,7 +620,6 @@ public class FullEcommerceApps extends JFrame {
         }
         container.add(Box.createVerticalStrut(20));
 
-        // 3. OPSI PEMBAYARAN
         JPanel payBox = new JPanel();
         payBox.setLayout(new BoxLayout(payBox, BoxLayout.Y_AXIS));
         payBox.setBackground(COLOR_WHITE);
@@ -683,7 +642,6 @@ public class FullEcommerceApps extends JFrame {
         payBox.add(rb1); payBox.add(rb2); payBox.add(rb3);
         container.add(payBox); container.add(Box.createVerticalStrut(20));
 
-        // 4. FOOTER
         JPanel footer = new JPanel(new BorderLayout());
         footer.setBackground(COLOR_WHITE);
         footer.setBorder(new EmptyBorder(15, 15, 15, 15));
@@ -694,19 +652,14 @@ public class FullEcommerceApps extends JFrame {
         totalFinal.setFont(new Font("SansSerif", Font.BOLD, 16));
         totalFinal.setForeground(COLOR_RED);
 
-        // --- PERBAIKAN TOMBOL BAYAR SEKARANG (HAPUS OVERLAY) ---
         JButton btnFinal = new JButton("BAYAR SEKARANG");
-        // INI BARIS AJAIBNYA: Menghapus style Windows yang bikin tombol jadi putih
         btnFinal.setUI(new BasicButtonUI());
-        
-        btnFinal.setBackground(COLOR_GREEN); // Default Hijau
-        btnFinal.setForeground(COLOR_WHITE);
-        btnFinal.setPreferredSize(new Dimension(160, 40));
-        btnFinal.setFocusPainted(false);
+        btnFinal.setBackground(COLOR_GREEN); btnFinal.setForeground(COLOR_WHITE);
+        btnFinal.setPreferredSize(new Dimension(160, 40)); btnFinal.setFocusPainted(false);
         
         btnFinal.addMouseListener(new MouseAdapter() {
-            public void mouseEntered(MouseEvent e) { btnFinal.setBackground(COLOR_RED); } // Hover Merah
-            public void mouseExited(MouseEvent e) { btnFinal.setBackground(COLOR_GREEN); } // Balik Hijau
+            public void mouseEntered(MouseEvent e) { btnFinal.setBackground(COLOR_RED); } 
+            public void mouseExited(MouseEvent e) { btnFinal.setBackground(COLOR_GREEN); } 
         });
 
         btnFinal.addActionListener(e -> {
@@ -742,6 +695,14 @@ public class FullEcommerceApps extends JFrame {
         JPanel w = new JPanel(new BorderLayout());
         JPanel h = new JPanel(new BorderLayout()); h.setBackground(COLOR_RED); h.setPreferredSize(new Dimension(0, 50));
         JLabel t = new JLabel("  " + title); t.setForeground(COLOR_WHITE); h.add(t, BorderLayout.WEST);
+        
+        if (title.contains("FLASH")) {
+            headerTimerLabel = new JLabel("Loading..."); 
+            headerTimerLabel.setFont(new Font("Monospaced", Font.BOLD, 14));
+            headerTimerLabel.setForeground(Color.YELLOW);
+            h.add(headerTimerLabel, BorderLayout.EAST);
+        }
+
         w.add(h, BorderLayout.NORTH); w.add(new JScrollPane(content), BorderLayout.CENTER);
         w.add(createNav(), BorderLayout.SOUTH); return w;
     }
@@ -768,14 +729,22 @@ public class FullEcommerceApps extends JFrame {
                     BufferedReader in = new BufferedReader(new InputStreamReader(s.getInputStream()));
                     while (true) {
                         String line = in.readLine();
-                        if(line != null && line.startsWith("DATA_PRODUK:")) SwingUtilities.invokeLater(() -> parseProducts(line.substring(12)));
+                        if (line != null) {
+                            if(line.startsWith("DATA_PRODUK:")) {
+                                lastProductRawData = line.substring(12); // Simpan data mentah
+                                SwingUtilities.invokeLater(() -> parseProducts(lastProductRawData));
+                            }
+                            else if (line.startsWith("SYNC_TIMER:")) {
+                                long endTime = Long.parseLong(line.substring(11));
+                                startFlashSaleTimer(endTime);
+                            }
+                        }
                     }
                 } catch (Exception e) {}
             }).start();
         } catch (Exception e) {}
     }
 
-    // 3. PERBAIKAN METHOD parseProducts (Mengambil data stok dari server)
     private void parseProducts(String raw) {
         gridDash.removeAll(); 
         gridSale.removeAll();
@@ -783,15 +752,15 @@ public class FullEcommerceApps extends JFrame {
             String[] d = item.split(",");
             if(d.length < 5) continue;
 
-            int stock = Integer.parseInt(d[2]); // Kolom indeks 2 adalah stok
+            int stock = Integer.parseInt(d[2]); 
             boolean isSale = d[4].equals("SALE");
 
             JPanel card = createHomeCard(
-                d[0], // image
-                d[1], // nama
-                d[3], // harga
+                d[0], 
+                d[1], 
+                d[3], 
                 isSale,
-                stock // Sekarang mengirim stok ke card
+                stock 
             );
 
             gridDash.add(card);
@@ -800,9 +769,8 @@ public class FullEcommerceApps extends JFrame {
         gridDash.add(Box.createVerticalStrut(80)); 
         gridSale.add(Box.createVerticalStrut(80));
 
-        gridDash.revalidate();
-        gridSale.revalidate();
-        repaint();
+        gridDash.revalidate(); gridDash.repaint();
+        gridSale.revalidate(); gridSale.repaint();
     }
 
     private void setupProfilePages() {
@@ -896,6 +864,61 @@ public class FullEcommerceApps extends JFrame {
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
             g2.setColor(c); g2.setStroke(new BasicStroke(1)); g2.drawRoundRect(x, y, w-1, h-1, r, r); g2.dispose();
         }
+    }
+
+    // =================================================================================
+    // 4. LOGIKA MULTITHREADING (COUNTDOWN TIMER & REFRESH OTOMATIS)
+    // =================================================================================
+    
+    private void startFlashSaleTimer(long endTimeMillis) {
+        if (flashSaleThread != null && flashSaleThread.isAlive()) {
+            flashSaleThread.interrupt();
+        }
+
+        // --- LOGIKA AWAL ---
+        // Jika waktu target > sekarang, artinya aktif
+        if (endTimeMillis > System.currentTimeMillis()) {
+            isFlashSaleActive = true;
+            // Jika sebelumnya tidak aktif (misal dari abu-abu ke aktif), refresh UI agar tombol jadi merah
+            SwingUtilities.invokeLater(() -> parseProducts(lastProductRawData));
+        } else {
+            isFlashSaleActive = false;
+        }
+
+        flashSaleThread = new Thread(() -> {
+            while (true) {
+                long now = System.currentTimeMillis();
+                long sisa = endTimeMillis - now;
+
+                if (sisa <= 0) {
+                    // --- WAKTU HABIS ---
+                    SwingUtilities.invokeLater(() -> {
+                        if(headerTimerLabel != null) headerTimerLabel.setText("BERAKHIR ");
+                        
+                        // Jika status masih dianggap aktif, matikan dan refresh UI agar tombol jadi abu-abu
+                        if(isFlashSaleActive) {
+                            isFlashSaleActive = false;
+                            parseProducts(lastProductRawData); // Refresh grid agar tombol jadi disable
+                        }
+                    });
+                    break;
+                }
+
+                // Masih berjalan
+                isFlashSaleActive = true;
+                long jam = sisa / (60 * 60 * 1000);
+                long menit = (sisa / (60 * 1000)) % 60;
+                long detik = (sisa / 1000) % 60;
+                String waktuStr = String.format("%02d:%02d:%02d", jam, menit, detik);
+
+                SwingUtilities.invokeLater(() -> {
+                     if(headerTimerLabel != null) headerTimerLabel.setText("⚡ " + waktuStr + " ");
+                });
+
+                try { Thread.sleep(1000); } catch (InterruptedException e) { break; }
+            }
+        });
+        flashSaleThread.start();
     }
 
     public static void main(String[] args) { 
